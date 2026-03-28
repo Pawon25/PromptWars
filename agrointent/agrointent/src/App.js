@@ -29,9 +29,7 @@ function App() {
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error(`Backend error: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Backend error: ${response.status}`);
 
       const data = await response.json();
       setResult(data);
@@ -42,52 +40,108 @@ function App() {
     setLoading(false);
   };
 
+  const urgencyClass = result?.urgency?.toLowerCase() || 'low';
+
   return (
-    <div style={{ maxWidth: 600, margin: '60px auto', fontFamily: 'sans-serif', padding: '0 20px' }}>
-      <h1>🌾 AgroIntent</h1>
-      <p>Describe your crop problem or upload a photo.</p>
+    <div className="app-shell">
+      <header className="app-header">
+        <span className="logo-icon">🌾</span>
+        <span className="wordmark">AgroIntent</span>
+        <span className="tagline">AI Crop Assistant</span>
+      </header>
 
-      <textarea
-        rows={4}
-        style={{ width: '100%', padding: 10, fontSize: 16 }}
-        placeholder="e.g. My wheat leaves are turning yellow at the tips..."
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        aria-label="Describe your crop problem"
-      />
+      <main className="app-main">
+        <div className="container">
 
-      <br /><br />
-      <input
-        type="file"
-        accept="image/*"
-        onChange={handleImageChange}
-        aria-label="Upload a crop photo"
-      />
-      <br /><br />
+          <div className="hero">
+            <h1>What's happening<br />with your crop?</h1>
+            <p>Describe the problem or upload a photo — get an instant diagnosis.</p>
+          </div>
 
-      <button
-        onClick={analyze}
-        disabled={loading || (!text && !image)}
-        style={{ padding: '10px 24px', fontSize: 16, cursor: 'pointer' }}
-        aria-label="Analyze crop problem"
-      >
-        {loading ? 'Analyzing...' : 'Analyze'}
-      </button>
+          <div className="card">
+            <div className="field">
+              <label htmlFor="crop-input">Describe the problem</label>
+              <textarea
+                id="crop-input"
+                placeholder="e.g. My wheat leaves are turning yellow at the tips and the stems feel soft..."
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                aria-label="Describe your crop problem"
+              />
+            </div>
 
-      {error && <p role="alert" style={{ color: 'red' }}>{error}</p>}
+            <div className="divider">or upload a photo</div>
 
-      {result && (
-        <div
-          role="region"
-          aria-label="Analysis Result"
-          style={{ marginTop: 30, padding: 20, border: '1px solid #ccc', borderRadius: 8 }}
-        >
-          <h2>Result</h2>
-          <p><strong>🔍 Diagnosis:</strong> {result.diagnosis}</p>
-          <p><strong>✅ Action:</strong> {result.action}</p>
-          <p><strong>⚠️ Urgency:</strong> {result.urgency}</p>
+            <div className="field">
+              <label
+                className="file-upload"
+                htmlFor="image-upload"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && document.getElementById('image-upload').click()}
+              >
+                <span className="upload-icon">📷</span>
+                <span className="upload-text">
+                  {image ? image.name : <><strong>Choose image</strong> &nbsp;or drag here</>}
+                </span>
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  aria-label="Upload a crop photo"
+                />
+              </label>
+            </div>
+
+            {loading ? (
+              <div className="loading-row" role="status" aria-live="polite">
+                <div className="spinner" />
+                Analyzing your crop…
+              </div>
+            ) : (
+              <button
+                className="btn-analyze"
+                onClick={analyze}
+                disabled={!text && !image}
+                aria-label="Analyze crop problem"
+              >
+                Analyze
+              </button>
+            )}
+
+            {error && (
+              <div className="error-box" role="alert">{error}</div>
+            )}
+          </div>
+
+          {result && (
+            <div className="result-card" role="region" aria-label="Analysis Result">
+              <div className="result-header">
+                <h2>Analysis</h2>
+                <span className={`urgency-badge ${urgencyClass}`}>
+                  {result.urgency} urgency
+                </span>
+              </div>
+              <div className="result-body">
+                <div className="result-item">
+                  <span className="item-label">Diagnosis</span>
+                  <span className="item-value">{result.diagnosis}</span>
+                </div>
+                <div className="result-item">
+                  <span className="item-label">Recommended Action</span>
+                  <span className="item-value">{result.action}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
-      )}
+      </main>
+
+      <footer className="app-footer">
+        Built for PromptWars · Powered by Vertex AI
+      </footer>
     </div>
   );
 }
