@@ -15,7 +15,7 @@ try:
     client = google.cloud.logging.Client()
     client.setup_logging()
 except Exception:
-    pass  # fallback to standard logging locally
+    pass
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,13 +42,32 @@ ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 MAX_TEXT_LENGTH = 1000
 MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
 
-PROMPT = """You are an expert agricultural assistant. Analyze the farmer's input and respond ONLY in valid JSON with exactly these keys:
-{
+LANGUAGE_NAMES = {
+    "en": "English",
+    "hi": "Hindi",
+    "kn": "Kannada",
+    "te": "Telugu",
+    "ta": "Tamil",
+}
+
+def build_prompt(language_code: str) -> str:
+    lang = LANGUAGE_NAMES.get(language_code, "English")
+    return f"""You are an expert agricultural assistant helping farmers diagnose crop problems.
+
+Analyze the farmer's input and respond ONLY in valid JSON with exactly these keys:
+{{
   "diagnosis": "what is the problem",
   "action": "what the farmer should do",
-  "urgency": "Low or Medium or High"
-}
-Do not include anything outside the JSON."""
+  "urgency": "Low or Medium or High",
+  "confidence": "Low or Medium or High"
+}}
+
+Rules:
+- Always respond in {lang} language (except the urgency and confidence values which must always be in English)
+- urgency and confidence must always be one of exactly: Low, Medium, or High (in English)
+- Set confidence to Low if the input is vague or lacks enough detail
+- Set confidence to High only if the diagnosis is clear and specific
+- Do not include anything outside the JSON"""
 
 # ── Routes ────────────────────────────────────────────────────
 @app.get("/")
@@ -60,19 +79,23 @@ def root():
 async def analyze(
     request: Request,
     text: str = Form(""),
-    image: UploadFile = File(None)
+    image: UploadFile = File(None),
+    language: str = Form("en"),
 ):
-    # Input validation
     if not text and not image:
         raise HTTPException(status_code=400, detail="Provide text or an image.")
 
     if text and len(text) > MAX_TEXT_LENGTH:
         raise HTTPException(status_code=400, detail=f"Text exceeds {MAX_TEXT_LENGTH} characters.")
 
-    logger.info(f"Analyze request — has_text={bool(text)}, has_image={image is not None}")
+    if language not in LANGUAGE_NAMES:
+        language = "en"
+
+    logger.info(f"Analyze request — has_text={bool(text)}, has_image={image is not None}, language={language}")
 
     try:
         model = GenerativeModel("gemini-2.5-flash")
+        prompt = build_prompt(language)
 
         if image:
             if image.content_type not in ALLOWED_IMAGE_TYPES:
@@ -84,18 +107,17 @@ async def analyze(
                 raise HTTPException(status_code=400, detail="Image exceeds 5MB limit.")
 
             image_part = Part.from_data(data=contents, mime_type=image.content_type)
-            response = model.generate_content([PROMPT, image_part])
+            response = model.generate_content([prompt, image_part])
         else:
-            response = model.generate_content(f"{PROMPT}\n\nFarmer says: {text}")
+            response = model.generate_content(f"{prompt}\n\nFarmer says: {text}")
 
         raw = response.text.replace("```json", "").replace("```", "").strip()
         result = json.loads(raw)
 
-        # Validate response structure
-        if not all(k in result for k in ("diagnosis", "action", "urgency")):
+        if not all(k in result for k in ("diagnosis", "action", "urgency", "confidence")):
             raise ValueError("Invalid response structure from model")
 
-        logger.info(f"Analysis complete — urgency={result.get('urgency')}")
+        logger.info(f"Analysis complete — urgency={result.get('urgency')}, confidence={result.get('confidence')}, language={language}")
         return result
 
     except HTTPException:

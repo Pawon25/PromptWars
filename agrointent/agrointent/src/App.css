@@ -93,6 +93,12 @@ body {
   gap: 6px;
 }
 
+.hero-lang-hint {
+  font-size: 12px;
+  color: var(--accent);
+  margin-top: 2px;
+}
+
 .hero h1 {
   font-family: 'DM Serif Display', serif;
   font-size: 32px;
@@ -737,6 +743,149 @@ body {
     font-size: 13px;
   }
 }
+
+/* ── Language selector ── */
+.lang-selector {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lang-btn {
+  padding: 3px 9px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.lang-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.lang-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ── Confidence hint ── */
+.confidence-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #fef5e7;
+  border: 1px solid #f5d88a;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #7a5000;
+  line-height: 1.5;
+}
+
+/* ── Confidence bar ── */
+.confidence-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.confidence-bar-wrap {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.confidence-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.confidence-bar.low {
+  width: 33%;
+  background: var(--urgent-high);
+}
+
+.confidence-bar.medium {
+  width: 66%;
+  background: var(--urgent-medium);
+}
+
+.confidence-bar.high {
+  width: 100%;
+  background: var(--accent);
+}
+
+.confidence-label {
+  font-size: 11px;
+  font-weight: 500;
+  min-width: 42px;
+  text-align: right;
+}
+
+.confidence-label.low {
+  color: var(--urgent-high);
+}
+
+.confidence-label.medium {
+  color: var(--urgent-medium);
+}
+
+.confidence-label.high {
+  color: var(--accent);
+}
+
+/* ── Share row ── */
+.share-row {
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.share-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: all 0.15s;
+}
+
+.share-btn.whatsapp {
+  background: #e8f5e9;
+  border-color: #a5d6a7;
+  color: #2e7d32;
+}
+
+.share-btn.whatsapp:hover {
+  background: #c8e6c9;
+}
+
+.share-btn.copy {
+  background: var(--bg);
+  color: var(--text-secondary);
+}
+
+.share-btn.copy:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 
 .app-footer {
   display: flex;

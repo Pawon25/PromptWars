@@ -1,8 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { Wheat, Camera, Loader2, AlertCircle, Check, Leaf, ScanSearch, Mic, MicOff, Volume2, VolumeX, Globe } from 'lucide-react';
+import { Wheat, Camera, Loader2, AlertCircle, Check, Leaf, ScanSearch, Mic, MicOff, Volume2, VolumeX, Globe, Share2, Copy, MessageCircle } from 'lucide-react';
 import './App.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:8000';
+
+const LANGUAGES = [
+  { code: 'en', label: 'EN', name: 'English', speechCode: 'en-IN' },
+  { code: 'hi', label: 'हि', name: 'Hindi', speechCode: 'hi-IN' },
+  { code: 'kn', label: 'ಕ', name: 'Kannada', speechCode: 'kn-IN' },
+  { code: 'te', label: 'తె', name: 'Telugu', speechCode: 'te-IN' },
+  { code: 'ta', label: 'த', name: 'Tamil', speechCode: 'ta-IN' },
+];
 
 const SCENARIOS = [
   {
@@ -42,6 +50,8 @@ function App() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [activeScenario, setActiveScenario] = useState(null);
+  const [language, setLanguage] = useState('en');
+  const [copied, setCopied] = useState(false);
 
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef(null);
@@ -59,25 +69,21 @@ function App() {
     };
   }, []);
 
+  const currentLang = LANGUAGES.find(l => l.code === language);
+
   const toggleListening = () => {
-    if (listening) {
-      recognitionRef.current?.stop();
-      setListening(false);
-      return;
-    }
+    if (listening) { stopListening(); return; }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    recognition.lang = 'en-IN';
+    recognition.lang = currentLang.speechCode;
     recognition.continuous = true;
     recognition.interimResults = true;
 
     recognition.onresult = (e) => {
       let finalTranscript = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          finalTranscript += e.results[i][0].transcript;
-        }
+        if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript;
       }
       if (finalTranscript) {
         setText(prev => prev ? prev + ' ' + finalTranscript.trim() : finalTranscript.trim());
@@ -86,7 +92,6 @@ function App() {
     };
 
     recognition.onend = () => {
-      // Restart if still in listening state (handles auto-stop on HTTPS)
       if (recognitionRef.current && listeningRef.current) {
         try { recognition.start(); } catch (_) { }
       } else {
@@ -95,9 +100,7 @@ function App() {
     };
 
     recognition.onerror = (e) => {
-      if (e.error !== 'no-speech') {
-        setListening(false);
-      }
+      if (e.error !== 'no-speech') setListening(false);
     };
 
     recognitionRef.current = recognition;
@@ -120,9 +123,9 @@ function App() {
       return;
     }
     const utterance = new SpeechSynthesisUtterance(
-      `Diagnosis: ${result.diagnosis}. Recommended action: ${result.action}. Urgency level: ${result.urgency}.`
+      `${result.diagnosis}. ${result.action}.`
     );
-    utterance.lang = 'en-IN';
+    utterance.lang = currentLang.speechCode;
     utterance.rate = 0.9;
     utterance.onend = () => setSpeaking(false);
     utterance.onerror = () => setSpeaking(false);
@@ -148,6 +151,14 @@ function App() {
     setSpeaking(false);
   };
 
+  const handleLanguageChange = (code) => {
+    setLanguage(code);
+    setResult(null);
+    stopListening();
+    window.speechSynthesis?.cancel();
+    setSpeaking(false);
+  };
+
   const analyze = async () => {
     setLoading(true);
     setError(null);
@@ -161,6 +172,7 @@ function App() {
     try {
       const formData = new FormData();
       if (text) formData.append('text', text);
+      formData.append('language', language);
 
       if (image) {
         formData.append('image', image);
@@ -188,7 +200,23 @@ function App() {
     setLoading(false);
   };
 
+  const shareText = result
+    ? `🌾 AgroIntent Crop Diagnosis\n\nDiagnosis: ${result.diagnosis}\n\nAction: ${result.action}\n\nUrgency: ${result.urgency}\n\nPowered by AgroIntent — https://pavan-promptwars.web.app`
+    : '';
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(shareText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleWhatsApp = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+  };
+
   const urgencyClass = result?.urgency?.toLowerCase() || 'low';
+  const confidenceClass = result?.confidence?.toLowerCase() || 'high';
+  const showLowConfidenceHint = result?.confidence === 'Low';
 
   const uploadLabel = () => {
     if (image) return image.name;
@@ -204,7 +232,19 @@ function App() {
       <header className="app-header">
         <Wheat size={20} strokeWidth={1.5} className="header-icon" />
         <span className="wordmark">AgroIntent</span>
-        <span className="tagline">AI Crop Assistant</span>
+        <div className="lang-selector">
+          {LANGUAGES.map(l => (
+            <button
+              key={l.code}
+              className={`lang-btn ${language === l.code ? 'active' : ''}`}
+              onClick={() => handleLanguageChange(l.code)}
+              title={l.name}
+              aria-label={`Switch to ${l.name}`}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
       </header>
 
       <main className="app-main">
@@ -213,6 +253,8 @@ function App() {
           <div className="hero">
             <h1>What's happening<br />with your crop?</h1>
             <p>Describe your problem or upload a photo — get an instant diagnosis.</p>
+            <p className="hero-lang-hint">Responses in <strong>{currentLang.name}</strong> — change language in the top right.</p>
+
           </div>
 
           <div className="card">
@@ -224,7 +266,6 @@ function App() {
                     className={`mic-btn ${listening ? 'active' : ''}`}
                     onClick={listening ? stopListening : toggleListening}
                     aria-label={listening ? 'Stop recording' : 'Start voice input'}
-                    title={listening ? 'Stop recording' : 'Speak your problem'}
                   >
                     {listening
                       ? <><MicOff size={13} strokeWidth={2} /> Stop</>
@@ -236,7 +277,7 @@ function App() {
               {listening && (
                 <div className="listening-indicator" role="status" aria-live="polite">
                   <span className="listening-dot" />
-                  Listening… speak your crop problem
+                  Listening in {currentLang.name}…
                 </div>
               )}
               <textarea
@@ -303,6 +344,7 @@ function App() {
             )}
           </div>
 
+          {/* Result */}
           {result && (
             <div className="result-card" role="region" aria-label="Analysis Result">
               <div className="result-header">
@@ -316,7 +358,6 @@ function App() {
                       className={`tts-btn ${speaking ? 'active' : ''}`}
                       onClick={speakResult}
                       aria-label={speaking ? 'Stop reading' : 'Read result aloud'}
-                      title={speaking ? 'Stop reading' : 'Listen to result'}
                     >
                       {speaking
                         ? <><VolumeX size={13} strokeWidth={2} /> Stop</>
@@ -326,7 +367,16 @@ function App() {
                   )}
                 </div>
               </div>
+
               <div className="result-body">
+                {/* Confidence hint */}
+                {showLowConfidenceHint && (
+                  <div className="confidence-hint" role="note">
+                    <AlertCircle size={13} strokeWidth={1.5} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <span>This diagnosis is based on limited information. For a more accurate result, try adding more details or uploading a photo of the affected area.</span>
+                  </div>
+                )}
+
                 <div className="result-item">
                   <span className="item-label">Diagnosis</span>
                   <span className="item-value">{result.diagnosis}</span>
@@ -335,10 +385,32 @@ function App() {
                   <span className="item-label">Recommended Action</span>
                   <span className="item-value">{result.action}</span>
                 </div>
+
+                {/* Confidence bar */}
+                {/* <div className="confidence-row">
+                  <span className="item-label">AI Confidence</span>
+                  <div className="confidence-bar-wrap">
+                    <div className={`confidence-bar ${confidenceClass}`} />
+                  </div>
+                  <span className={`confidence-label ${confidenceClass}`}>{result.confidence}</span>
+                </div> */}
+
+                {/* Share row */}
+                <div className="share-row">
+                  <button className="share-btn whatsapp" onClick={handleWhatsApp} aria-label="Share on WhatsApp">
+                    <MessageCircle size={13} strokeWidth={2} />
+                    WhatsApp
+                  </button>
+                  <button className="share-btn copy" onClick={handleCopy} aria-label="Copy to clipboard">
+                    <Copy size={13} strokeWidth={2} />
+                    {copied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
 
+          {/* Scenarios */}
           <div className="scenarios-section">
             <div className="scenarios-label">Or try a sample scenario</div>
             <div className="scenarios-grid">
