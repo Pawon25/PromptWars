@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Wheat, Upload, Loader2, AlertCircle, Check, Camera, Leaf, ScanSearch } from 'lucide-react';
 import './App.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:8000';
@@ -12,11 +13,18 @@ const SCENARIOS = [
     image: '/scenarios/wheat.jpg',
   },
   {
+    id: 4,
+    title: 'Pest infestation on corn',
+    description: 'Holes in leaves, visible insects',
+    text: 'My corn plants have holes in the leaves and I can see small insects clustered on the undersides. Some cobs are also damaged and show signs of borers inside.',
+    image: '/scenarios/corn.jpg',
+  },
+  {
     id: 2,
     title: 'Black spots on tomato',
     description: 'Dark lesions on leaves & fruit',
     text: 'My tomato plants have dark black spots appearing on the leaves and some fruits. The spots have a yellow ring around them and the leaves are starting to drop.',
-    image: '/scenarios/tomoto.jpg',
+    image: '/scenarios/tomato.jpg',
   },
   {
     id: 3,
@@ -25,13 +33,7 @@ const SCENARIOS = [
     text: 'My rice crop is wilting and the leaves are turning brown from the tips inward. The plants look droopy even after irrigation and some sections of the field are worse than others.',
     image: '/scenarios/rice.jpg',
   },
-  {
-    id: 4,
-    title: 'Pest infestation on corn',
-    description: 'Holes in leaves, visible insects',
-    text: 'My corn plants have holes in the leaves and I can see small insects clustered on the undersides. Some cobs are also damaged and show signs of borers inside.',
-    image: '/scenarios/corn.jpg',
-  },
+
 ];
 
 function App() {
@@ -65,10 +67,8 @@ function App() {
       if (text) formData.append('text', text);
 
       if (image) {
-        // user uploaded their own image
         formData.append('image', image);
       } else if (activeScenario) {
-        // fetch the scenario image and send it
         const scenario = SCENARIOS.find(s => s.id === activeScenario);
         if (scenario) {
           const res = await fetch(scenario.image);
@@ -83,7 +83,6 @@ function App() {
       });
 
       if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-
       const data = await response.json();
       setResult(data);
     } catch (err) {
@@ -99,15 +98,16 @@ function App() {
     if (image) return image.name;
     if (activeScenario) {
       const s = SCENARIOS.find(s => s.id === activeScenario);
-      return `📎 Sample image attached — ${s?.title}`;
+      return `Sample image attached — ${s?.title}`;
     }
     return null;
   };
 
   return (
     <div className="app-shell">
+      {/* Header */}
       <header className="app-header">
-        <span className="logo-icon">🌾</span>
+        <Wheat size={20} strokeWidth={1.5} className="header-icon" />
         <span className="wordmark">AgroIntent</span>
         <span className="tagline">AI Crop Assistant</span>
       </header>
@@ -144,11 +144,14 @@ function App() {
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && document.getElementById('image-upload').click()}
               >
-                <span className="upload-icon">{activeScenario ? '🖼️' : '📷'}</span>
+                {activeScenario
+                  ? <ScanSearch size={17} strokeWidth={1.5} className="upload-svg-icon" />
+                  : <Camera size={17} strokeWidth={1.5} className="upload-svg-icon" />
+                }
                 <span className="upload-text">
                   {uploadLabel()
                     ? <strong style={{ color: 'var(--accent)' }}>{uploadLabel()}</strong>
-                    : <><strong>Choose image</strong> &nbsp;or drag here</>
+                    : <><strong>Choose image</strong>&nbsp; or drag here</>
                   }
                 </span>
                 <input
@@ -163,7 +166,7 @@ function App() {
 
             {loading ? (
               <div className="loading-row" role="status" aria-live="polite">
-                <div className="spinner" />
+                <Loader2 size={16} className="spin-icon" />
                 Analyzing your crop…
               </div>
             ) : (
@@ -173,11 +176,17 @@ function App() {
                 disabled={!text && !image && !activeScenario}
                 aria-label="Analyze crop problem"
               >
+                <Leaf size={15} strokeWidth={1.5} />
                 Analyze
               </button>
             )}
 
-            {error && <div className="error-box" role="alert">{error}</div>}
+            {error && (
+              <div className="error-box" role="alert">
+                <AlertCircle size={14} strokeWidth={1.5} style={{ flexShrink: 0, marginTop: 1 }} />
+                {error}
+              </div>
+            )}
           </div>
 
           {/* Result */}
@@ -202,7 +211,7 @@ function App() {
             </div>
           )}
 
-          {/* Scenarios — below the main card */}
+          {/* Scenarios */}
           <div className="scenarios-section">
             <div className="scenarios-label">Or try a sample scenario</div>
             <div className="scenarios-grid">
@@ -218,7 +227,11 @@ function App() {
                     <span className="scenario-title">{s.title}</span>
                     <span className="scenario-desc">{s.description}</span>
                   </div>
-                  {activeScenario === s.id && <span className="scenario-check">✓</span>}
+                  {activeScenario === s.id && (
+                    <span className="scenario-check">
+                      <Check size={11} strokeWidth={2.5} />
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

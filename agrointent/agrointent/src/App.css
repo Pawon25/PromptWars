@@ -505,3 +505,37 @@ body {
   background: var(--accent-light);
   border-style: solid;
 }
+
+/* ── Lucide icon helpers ── */
+.header-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.upload-svg-icon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.file-upload.has-scenario .upload-svg-icon {
+  color: var(--accent);
+}
+
+.btn-analyze {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.spin-icon {
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.error-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
