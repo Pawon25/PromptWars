@@ -1,5 +1,14 @@
 {
   "projects": {
     "default": "pavan-promptwars"
+  },
+  "targets": {
+    "pavan-promptwars": {
+      "hosting": {
+        "app": [
+          "pavan-promptwars"
+        ]
+      }
+    }
   }
 }
