@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import './App.css';
 
-const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:8000';
 
 function App() {
   const [text, setText] = useState('');
@@ -15,43 +14,29 @@ function App() {
     setImage(e.target.files[0]);
   };
 
-  const toBase64 = (file) => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = reject;
-  });
-
   const analyze = async () => {
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
-const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const formData = new FormData();
+      if (text) formData.append('text', text);
+      if (image) formData.append('image', image);
 
-      const prompt = `You are an expert agricultural assistant. Analyze the farmer's input and respond ONLY in valid JSON with exactly these keys:
-      {
-        "diagnosis": "what is the problem",
-        "action": "what the farmer should do",
-        "urgency": "Low or Medium or High"
-      }`;
+      const response = await fetch(`${BACKEND_URL}/analyze`, {
+        method: 'POST',
+        body: formData,
+      });
 
-      let response;
-
-      if (image) {
-        const base64 = await toBase64(image);
-        const imagePart = { inlineData: { data: base64, mimeType: image.type } };
-        response = await model.generateContent([prompt, imagePart]);
-      } else {
-        response = await model.generateContent(`${prompt}\n\nFarmer says: ${text}`);
+      if (!response.ok) {
+        throw new Error(`Backend error: ${response.status}`);
       }
 
-      const raw = response.response.text();
-      const clean = raw.replace(/```json|```/g, '').trim();
-      setResult(JSON.parse(clean));
+      const data = await response.json();
+      setResult(data);
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      setError('Something went wrong. Please try again. ' + err.message);
     }
 
     setLoading(false);
@@ -68,21 +53,35 @@ const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
         placeholder="e.g. My wheat leaves are turning yellow at the tips..."
         value={text}
         onChange={(e) => setText(e.target.value)}
+        aria-label="Describe your crop problem"
       />
 
       <br /><br />
-      <input type="file" accept="image/*" onChange={handleImageChange} />
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleImageChange}
+        aria-label="Upload a crop photo"
+      />
       <br /><br />
 
-      <button onClick={analyze} disabled={loading || (!text && !image)}
-        style={{ padding: '10px 24px', fontSize: 16, cursor: 'pointer' }}>
+      <button
+        onClick={analyze}
+        disabled={loading || (!text && !image)}
+        style={{ padding: '10px 24px', fontSize: 16, cursor: 'pointer' }}
+        aria-label="Analyze crop problem"
+      >
         {loading ? 'Analyzing...' : 'Analyze'}
       </button>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p role="alert" style={{ color: 'red' }}>{error}</p>}
 
       {result && (
-        <div style={{ marginTop: 30, padding: 20, border: '1px solid #ccc', borderRadius: 8 }}>
+        <div
+          role="region"
+          aria-label="Analysis Result"
+          style={{ marginTop: 30, padding: 20, border: '1px solid #ccc', borderRadius: 8 }}
+        >
           <h2>Result</h2>
           <p><strong>🔍 Diagnosis:</strong> {result.diagnosis}</p>
           <p><strong>✅ Action:</strong> {result.action}</p>
