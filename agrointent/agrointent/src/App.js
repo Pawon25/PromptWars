@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Wheat, Camera, Loader2, AlertCircle, Check, Leaf, ScanSearch, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Wheat, Camera, Loader2, AlertCircle, Check, Leaf, ScanSearch, Mic, MicOff, Volume2, VolumeX, Globe } from 'lucide-react';
 import './App.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:8000';
@@ -45,6 +45,7 @@ function App() {
 
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef(null);
+  const listeningRef = useRef(false);
   const [speaking, setSpeaking] = useState(false);
 
   const speechSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
@@ -52,6 +53,7 @@ function App() {
 
   useEffect(() => {
     return () => {
+      listeningRef.current = false;
       if (recognitionRef.current) recognitionRef.current.stop();
       if (window.speechSynthesis) window.speechSynthesis.cancel();
     };
@@ -67,21 +69,47 @@ function App() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-IN';
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.continuous = true;
+    recognition.interimResults = true;
 
     recognition.onresult = (e) => {
-      const transcript = e.results[0][0].transcript;
-      setText(prev => prev ? prev + ' ' + transcript : transcript);
-      setActiveScenario(null);
+      let finalTranscript = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          finalTranscript += e.results[i][0].transcript;
+        }
+      }
+      if (finalTranscript) {
+        setText(prev => prev ? prev + ' ' + finalTranscript.trim() : finalTranscript.trim());
+        setActiveScenario(null);
+      }
     };
 
-    recognition.onend = () => setListening(false);
-    recognition.onerror = () => setListening(false);
+    recognition.onend = () => {
+      // Restart if still in listening state (handles auto-stop on HTTPS)
+      if (recognitionRef.current && listeningRef.current) {
+        try { recognition.start(); } catch (_) { }
+      } else {
+        setListening(false);
+      }
+    };
+
+    recognition.onerror = (e) => {
+      if (e.error !== 'no-speech') {
+        setListening(false);
+      }
+    };
 
     recognitionRef.current = recognition;
+    listeningRef.current = true;
     recognition.start();
     setListening(true);
+  };
+
+  const stopListening = () => {
+    listeningRef.current = false;
+    recognitionRef.current?.stop();
+    setListening(false);
   };
 
   const speakResult = () => {
@@ -108,6 +136,9 @@ function App() {
   };
 
   const handleScenario = (scenario) => {
+    listeningRef.current = false;
+    recognitionRef.current?.stop();
+    setListening(false);
     setActiveScenario(scenario.id);
     setText(scenario.text);
     setResult(null);
@@ -121,6 +152,9 @@ function App() {
     setLoading(true);
     setError(null);
     setResult(null);
+    listeningRef.current = false;
+    recognitionRef.current?.stop();
+    setListening(false);
     window.speechSynthesis?.cancel();
     setSpeaking(false);
 
@@ -185,10 +219,10 @@ function App() {
             <div className="field">
               <div className="field-header">
                 <label htmlFor="crop-input">Describe the problem</label>
-                {speechSupported && (
+                {/* {speechSupported && (
                   <button
                     className={`mic-btn ${listening ? 'active' : ''}`}
-                    onClick={toggleListening}
+                    onClick={listening ? stopListening : toggleListening}
                     aria-label={listening ? 'Stop recording' : 'Start voice input'}
                     title={listening ? 'Stop recording' : 'Speak your problem'}
                   >
@@ -197,7 +231,7 @@ function App() {
                       : <><Mic size={13} strokeWidth={2} /> Speak</>
                     }
                   </button>
-                )}
+                )} */}
               </div>
               {listening && (
                 <div className="listening-indicator" role="status" aria-live="polite">
@@ -334,7 +368,22 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        Built for PromptWars · Powered by Vertex AI
+        <span>Built by <strong style={{ color: 'var(--text-primary)' }}>Pavan</strong> for PromptWars · Powered by Vertex AI</span>
+        <div className="footer-links">
+          <a href="https://www.linkedin.com/in/pavan-b-mce/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+            <img src="https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/linkedin.svg" width="16" height="16" alt="LinkedIn" style={{ filter: 'invert(35%) sepia(50%) saturate(400%) hue-rotate(90deg)' }} />
+            LinkedIn
+          </a>
+          <span className="footer-dot">·</span>
+          <a href="https://github.com/Pawon25" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+            <img src="https://cdn.simpleicons.org/github/3d6b3f" width="16" height="16" alt="GitHub" />
+            GitHub
+          </a>
+          <span className="footer-dot">·</span>
+          <a href="https://pawon25.github.io/Pavans_Portfolio/" target="_blank" rel="noopener noreferrer" aria-label="Portfolio">
+            <Globe size={13} strokeWidth={1.5} style={{ color: '#3d6b3f' }} /> Portfolio
+          </a>
+        </div>
       </footer>
     </div>
   );
