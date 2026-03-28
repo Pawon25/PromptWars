@@ -1,0 +1,53 @@
+## Session Summary
+
+### What We Built
+**AgroIntent** — A React app where farmers describe crop problems or upload a photo → Gemini analyzes it → returns a structured Diagnosis, Action, Urgency card.
+
+---
+
+### What Worked ✅
+- Understood the hackathon problem statement clearly
+- Planned a minimal, focused app (no backend, no auth, no DB)
+- Built the full React app manually from scratch
+- Gemini multimodal integration (text + image)
+- `npm run build` succeeded cleanly
+- Firebase Hosting setup and deployment worked
+- App is **live at https://pavan-promptwars.web.app**
+
+---
+
+### What Didn't Work ❌
+- **Gemini API 429 errors** — free tier AI Studio key hit rate limits
+- Model names tried: `gemini-1.5-flash` → `gemini-2.0-flash` → `gemini-2.0-flash-lite` → `gemini-2.0-flash-exp`
+- API works but quota was the blocker
+
+---
+
+### Submission Score — Attempt 1 (47.88%)
+| Metric | Score |
+|---|---|
+| Problem Statement Alignment | 64.5% |
+| Code Quality | 60% |
+| Security | 45% |
+| Accessibility | 30% |
+| Efficiency | 40% |
+| Google Services | 25% |
+| Testing | 13.75% |
+
+---
+
+### Key Gaps to Fix for Real Round
+- **Google Services (25%)** — only used Gemini + Firebase. Need to add more GCP services like Cloud Run, Vision API, or Vertex AI
+- **Testing (13.75%)** — no tests written at all
+- **Accessibility (30%)** — no ARIA labels, semantic HTML missing
+- **Security (45%)** — API key exposed in frontend `.env`
+- **Efficiency (40%)** — no caching, no debouncing, no error boundaries
+
+---
+
+### Key Learnings for Real Round
+- Get a **paid Gemini API key** ready before starting
+- Move API key to a backend (Cloud Run / Cloud Functions) for security
+- Add basic tests even if minimal
+- Use more Google services to boost that score
+- Firebase Hosting is the fastest deployment path for React on Windows
