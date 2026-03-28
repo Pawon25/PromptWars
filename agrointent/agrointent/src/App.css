@@ -397,3 +397,111 @@ body {
     padding: 20px;
   }
 }
+
+/* ── Scenarios ── */
+.scenarios-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.scenarios-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.scenario-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  box-shadow: var(--shadow);
+}
+
+.scenario-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(61, 107, 63, 0.12);
+}
+
+.scenario-card.active {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.scenario-img {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  display: block;
+}
+
+.scenario-info {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scenario-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.scenario-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.scenario-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--accent);
+  color: white;
+  font-size: 11px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .scenarios-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .scenario-img {
+    height: 70px;
+  }
+}
+
+/* ── Scenario section spacing ── */
+.scenarios-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── File upload scenario state ── */
+.file-upload.has-scenario {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  border-style: solid;
+}
