@@ -19,7 +19,6 @@ const SCENARIOS = [
     text: 'My corn plants have holes in the leaves and I can see small insects clustered on the undersides. Some cobs are also damaged and show signs of borers inside.',
     image: '/scenarios/corn.jpg',
   },
-
   {
     id: 2,
     title: 'Black spots on tomato',
@@ -27,7 +26,6 @@ const SCENARIOS = [
     text: 'My tomato plants have dark black spots appearing on the leaves and some fruits. The spots have a yellow ring around them and the leaves are starting to drop.',
     image: '/scenarios/tomato.jpg',
   },
-
   {
     id: 3,
     title: 'Wilting rice crop',
@@ -35,7 +33,6 @@ const SCENARIOS = [
     text: 'My rice crop is wilting and the leaves are turning brown from the tips inward. The plants look droopy even after irrigation and some sections of the field are worse than others.',
     image: '/scenarios/rice.jpg',
   },
-
 ];
 
 function App() {
@@ -46,11 +43,8 @@ function App() {
   const [error, setError] = useState(null);
   const [activeScenario, setActiveScenario] = useState(null);
 
-  // Speech to text
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef(null);
-
-  // Text to speech
   const [speaking, setSpeaking] = useState(false);
 
   const speechSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
@@ -92,13 +86,11 @@ function App() {
 
   const speakResult = () => {
     if (!result) return;
-
     if (speaking) {
       window.speechSynthesis.cancel();
       setSpeaking(false);
       return;
     }
-
     const utterance = new SpeechSynthesisUtterance(
       `Diagnosis: ${result.diagnosis}. Recommended action: ${result.action}. Urgency level: ${result.urgency}.`
     );
@@ -106,7 +98,6 @@ function App() {
     utterance.rate = 0.9;
     utterance.onend = () => setSpeaking(false);
     utterance.onerror = () => setSpeaking(false);
-
     window.speechSynthesis.speak(utterance);
     setSpeaking(true);
   };
@@ -278,7 +269,6 @@ function App() {
             )}
           </div>
 
-          {/* Result */}
           {result && (
             <div className="result-card" role="region" aria-label="Analysis Result">
               <div className="result-header">
@@ -315,7 +305,6 @@ function App() {
             </div>
           )}
 
-          {/* Scenarios */}
           <div className="scenarios-section">
             <div className="scenarios-label">Or try a sample scenario</div>
             <div className="scenarios-grid">
