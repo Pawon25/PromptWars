@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Wheat, Upload, Loader2, AlertCircle, Check, Camera, Leaf, ScanSearch } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Wheat, Camera, Loader2, AlertCircle, Check, Leaf, ScanSearch, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import './App.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://127.0.0.1:8000';
@@ -19,6 +19,7 @@ const SCENARIOS = [
     text: 'My corn plants have holes in the leaves and I can see small insects clustered on the undersides. Some cobs are also damaged and show signs of borers inside.',
     image: '/scenarios/corn.jpg',
   },
+
   {
     id: 2,
     title: 'Black spots on tomato',
@@ -26,6 +27,7 @@ const SCENARIOS = [
     text: 'My tomato plants have dark black spots appearing on the leaves and some fruits. The spots have a yellow ring around them and the leaves are starting to drop.',
     image: '/scenarios/tomato.jpg',
   },
+
   {
     id: 3,
     title: 'Wilting rice crop',
@@ -44,6 +46,71 @@ function App() {
   const [error, setError] = useState(null);
   const [activeScenario, setActiveScenario] = useState(null);
 
+  // Speech to text
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  // Text to speech
+  const [speaking, setSpeaking] = useState(false);
+
+  const speechSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+  const ttsSupported = 'speechSynthesis' in window;
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  const toggleListening = () => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-IN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      setText(prev => prev ? prev + ' ' + transcript : transcript);
+      setActiveScenario(null);
+    };
+
+    recognition.onend = () => setListening(false);
+    recognition.onerror = () => setListening(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+  };
+
+  const speakResult = () => {
+    if (!result) return;
+
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(
+      `Diagnosis: ${result.diagnosis}. Recommended action: ${result.action}. Urgency level: ${result.urgency}.`
+    );
+    utterance.lang = 'en-IN';
+    utterance.rate = 0.9;
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+
+    window.speechSynthesis.speak(utterance);
+    setSpeaking(true);
+  };
+
   const handleImageChange = (e) => {
     setImage(e.target.files[0]);
     setActiveScenario(null);
@@ -55,12 +122,16 @@ function App() {
     setResult(null);
     setError(null);
     setImage(null);
+    window.speechSynthesis?.cancel();
+    setSpeaking(false);
   };
 
   const analyze = async () => {
     setLoading(true);
     setError(null);
     setResult(null);
+    window.speechSynthesis?.cancel();
+    setSpeaking(false);
 
     try {
       const formData = new FormData();
@@ -105,7 +176,6 @@ function App() {
 
   return (
     <div className="app-shell">
-      {/* Header */}
       <header className="app-header">
         <Wheat size={20} strokeWidth={1.5} className="header-icon" />
         <span className="wordmark">AgroIntent</span>
@@ -115,16 +185,35 @@ function App() {
       <main className="app-main">
         <div className="container">
 
-          {/* Hero */}
           <div className="hero">
             <h1>What's happening<br />with your crop?</h1>
             <p>Describe your problem or upload a photo — get an instant diagnosis.</p>
           </div>
 
-          {/* Input card */}
           <div className="card">
             <div className="field">
-              <label htmlFor="crop-input">Describe the problem</label>
+              <div className="field-header">
+                <label htmlFor="crop-input">Describe the problem</label>
+                {speechSupported && (
+                  <button
+                    className={`mic-btn ${listening ? 'active' : ''}`}
+                    onClick={toggleListening}
+                    aria-label={listening ? 'Stop recording' : 'Start voice input'}
+                    title={listening ? 'Stop recording' : 'Speak your problem'}
+                  >
+                    {listening
+                      ? <><MicOff size={13} strokeWidth={2} /> Stop</>
+                      : <><Mic size={13} strokeWidth={2} /> Speak</>
+                    }
+                  </button>
+                )}
+              </div>
+              {listening && (
+                <div className="listening-indicator" role="status" aria-live="polite">
+                  <span className="listening-dot" />
+                  Listening… speak your crop problem
+                </div>
+              )}
               <textarea
                 id="crop-input"
                 placeholder="e.g. My wheat leaves are turning yellow at the tips..."
@@ -194,9 +283,24 @@ function App() {
             <div className="result-card" role="region" aria-label="Analysis Result">
               <div className="result-header">
                 <h2>Analysis</h2>
-                <span className={`urgency-badge ${urgencyClass}`}>
-                  {result.urgency} urgency
-                </span>
+                <div className="result-header-right">
+                  <span className={`urgency-badge ${urgencyClass}`}>
+                    {result.urgency} urgency
+                  </span>
+                  {ttsSupported && (
+                    <button
+                      className={`tts-btn ${speaking ? 'active' : ''}`}
+                      onClick={speakResult}
+                      aria-label={speaking ? 'Stop reading' : 'Read result aloud'}
+                      title={speaking ? 'Stop reading' : 'Listen to result'}
+                    >
+                      {speaking
+                        ? <><VolumeX size={13} strokeWidth={2} /> Stop</>
+                        : <><Volume2 size={13} strokeWidth={2} /> Listen</>
+                      }
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="result-body">
                 <div className="result-item">
